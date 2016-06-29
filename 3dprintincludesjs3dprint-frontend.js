@@ -1155,7 +1155,11 @@ function p3dCalculatePrintingCost( product_info ) {
       printing_cost=50.50 + printing_vol*printer.data('price');
 		}
 		else if ( printer.data('price_type')=="sls" ) {
-			printing_cost=product_info['model']['weight']*printer.data('price')*1000000000000;
+			//printing_cost=product_info['model']['weight']*printer.data('price')*1000000000000;
+      // added dimensions
+      product_info['model']['x_dim']
+      //product_info['model']['y_dim']
+      //product_info['model']['z_dim']
 		}
 
 	}
