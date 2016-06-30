@@ -1151,7 +1151,8 @@ function p3dCalculatePrintingCost( product_info ) {
         729000:1.4;
         1000000:1.2;
         1728000:1.1
-        `;
+      `;
+
       var printer_volume_pricing_array = printer_volume_pricing_string.split(';');
         for (var i = 0; i < printer_volume_pricing_array.length; i++) {
           var discount_rule = printer_volume_pricing_array[i].split(':');
