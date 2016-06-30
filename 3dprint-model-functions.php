@@ -536,6 +536,12 @@ function p3d_calculate_printing_cost( $printer_id, $material_id, $coating_id, $p
 		elseif ( $printer['price_type']=="gram" ) {
 			$printing_cost = $weight * $printer['price'];
 		}
+		elseif ( $printer['price_type']=="sla" ) {
+			$printing_cost = 100000;
+		}
+		elseif ( $printer['price_type']=="sls" ) {
+			$printing_cost = 500000;
+		}
 	}
 	elseif ( strstr ( $printer['price'], ':' ) ) {
 		$printer['price']=trim($printer['price']);
