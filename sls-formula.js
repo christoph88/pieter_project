@@ -1,10 +1,31 @@
 var x = process.argv[2];
 var y = process.argv[3];
 var z = process.argv[4];
-
-var calcSLS = function(multiplier) {console.log("volgende value komt terug: " + multiplier)};
-
 var xyz = x * y * z;
+
+var calcSLS = function(multiplier) {
+  console.log("het volume is: " + xyz);
+  console.log("SLS uitkomst: ");
+  if (z * z< x * y) {
+    console.log("A:");
+    console.log(
+      (3.14 + ( 0.0023 * x * z))+ ( (0.042 * (( x*y)/(x*10))) * (z-1)) * multiplier
+    );
+  } else
+  if (x < z) {
+    console.log("B:");
+    console.log(
+      (3.14 + ( 0.0023 * x * z))+ ( (0.042 * (( z*y)/(z*10))) * (x-1)) * multiplier
+    );
+  } else
+  {
+    console.log("C:");
+    console.log(
+      (3.14 + ( 0.0023 * x * y))+ ( (0.042 * (( x*z)/(x*10))) * (y-1)) * multiplier
+    );
+  }
+};
+
 
 if (xyz < 1001) {
   var multiplier = -0.3;
