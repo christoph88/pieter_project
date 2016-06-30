@@ -28,7 +28,9 @@ var calcSLS = function(multiplier) {
 
 
 //if smaller than x use following multiplier
-//use . after comma
+//use . for a comma
+//use : to split x and multiplier
+//use ; to define end of multiplier and start a new comparison
 var multipliers = `
 1001:-0.3;
 8001:0.3;
