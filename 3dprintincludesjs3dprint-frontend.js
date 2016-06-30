@@ -1131,7 +1131,7 @@ function p3dCalculatePrintingCost( product_info ) {
 
 	if ( !isNaN ( printer.data('price') ) ) {
 		if ( printer.data('price_type')=="material_volume" ) {
-			printing_cost=printing_volume*printer.data('price');
+      printing_cost=printing_volume*printer.data('price');
 		}
 		else if ( printer.data('price_type')=="box_volume" ) {
 			printing_cost=product_info['model']['box_volume']*printer.data('price');
@@ -1154,22 +1154,20 @@ function p3dCalculatePrintingCost( product_info ) {
       `;
 
       var printer_volume_pricing_array = printer_volume_pricing_string.split(';');
-        for (var i = 0; i < printer_volume_pricing_array.length; i++) {
-          var discount_rule = printer_volume_pricing_array[i].split(':');
-          if (discount_rule.length == 2) {
-            var amount = discount_rule[0];
-            var price = discount_rule[1];	
-            // put box_volume in cubic cm, convert to mm > * 1000
-            if (product_info['model']['box_volume']*1000 >= amount)
-              printing_vol = product_info['model']['box_volume'] * price;
-          }
+
+      for (var i = 0; i < printer_volume_pricing_array.length; i++) {
+        var discount_rule = printer_volume_pricing_array[i].split(':');
+        if (discount_rule.length == 2) {
+          var amount = discount_rule[0];
+          var price = discount_rule[1];	
+          // put box_volume in cubic cm, convert to mm > * 1000
+          if (product_info['model']['box_volume']*1000 >= amount)
+            printing_vol = product_info['model']['box_volume'] * price;
         }
-      printing_cost = 50.50 + printing_vol * printer.data('price');
+      }
+      printing_cost=50.50+printing_vol*printer.data('price');
 		}
 		else if ( printer.data('price_type')=="sls" ) {
-			//printing_cost=product_info['model']['weight']*printer.data('price')*1000000000000;
-      // added dimensions
-
       // standaard dimensies zijn in cm, converteren naar mm
       var x = product_info['model']['x_dim'] * 100;
       var y = product_info['model']['y_dim'] * 100;
@@ -1178,13 +1176,13 @@ function p3dCalculatePrintingCost( product_info ) {
 
       var calcSLS = function(multiplier) {
         if (z * z< x * y) {
-            printing_cost = (3.14 + ( 0.0023 * x * z))+ ( (0.042 * (( x*y)/(x*10))) * (z-1)) * multiplier;
+          printing_cost=(3.14+(0.0023*x*z))+((0.042*((x*y)/(x*10)))*(z-1))*multiplier;
         } else
         if (x < z) {
-            printing_cost = (3.14 + ( 0.0023 * x * z))+ ( (0.042 * (( z*y)/(z*10))) * (x-1)) * multiplier;
+          printing_cost=(3.14+(0.0023*x*z))+((0.042*((z*y)/(z*10)))*(x-1))*multiplier;
         } else
         {
-            printing_cost = (3.14 + ( 0.0023 * x * y))+ ( (0.042 * (( x*z)/(x*10))) * (y-1)) * multiplier;
+          printing_cost=(3.14+(0.0023*x*y))+((0.042*((x*z)/(x*10)))*(y-1))*multiplier;
         }
       };
 
