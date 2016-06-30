@@ -31,7 +31,7 @@ var calcSLS = function(multiplier) {
 //use . for a comma
 //use : to split x and multiplier
 //use ; to define end of multiplier and start a new comparison
-var multipliers = `
+var multiplierString = `
 1001:-0.3;
 8001:0.3;
 27001:0.5;
@@ -55,7 +55,7 @@ var multipliers = `
 120000001:5;
 `
 
-var multiplierArray = multipliers.split(';');
+var multiplierArray = multiplierString.split(';');
 for (var i = 0; i < multiplierArray.length; i++) {
   var helper = multiplierArray[i].split(':');
   if (xyz < helper[0]) {
