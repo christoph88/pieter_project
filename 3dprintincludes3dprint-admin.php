@@ -207,7 +207,12 @@ function register_3dprint_menu_page_callback() {
 	$settings=p3d_get_option( '3dp_settings' );
 	$price_requests=p3d_get_option( '3dp_price_requests' );
 	
-
+//	if (!empty($printers)) $printers = p3d_sort_by_group_order($printers);
+//	if (!empty($materials)) $materials = p3d_sort_by_group_order($materials);
+//	if (!empty($coatings)) $coatings = p3d_sort_by_group_order($coatings);
+//	$unassigned_materials = p3d_get_unassigned_materials();
+//print_r(p3d_get_unassigned_coatings($coatings, $materials));
+//print_r(p3d_get_unassigned_materials($coatings, $materials));
 
 ?>
 <script language="javascript">
