@@ -27,87 +27,37 @@ var calcSLS = function(multiplier) {
 };
 
 
-if (xyz < 1001) {
-  var multiplier = -0.3;
-  calcSLS(multiplier);
-} else
-if (xyz < 8001) {
-  var multiplier = 0.3;
-  calcSLS(multiplier);
-} else
-if (xyz < 27001) {
-  var multiplier = 0.5;
-  calcSLS(multiplier);
-} else
-if (xyz < 64001) {
-	var multiplier = 0.62;
-  calcSLS(multiplier);
-} else
-if (xyz < 125001) {
-	var multiplier = 0.8;
-  calcSLS(multiplier);
-} else
-if (xyz < 216001) {
-	var multiplier = 0.9;
-  calcSLS(multiplier);
-} else
-if (xyz < 343001) {
-	var multiplier = 1.05;
-  calcSLS(multiplier);
-} else
-if (xyz < 512001) {
-	var multiplier = 1.2;
-  calcSLS(multiplier);
-} else
-if (xyz < 729001) {
-	var multiplier = 1.32;
-  calcSLS(multiplier);
-} else
-if (xyz < 1000001) {
-	var multiplier = 1.47;
-  calcSLS(multiplier);
-} else
-if (xyz < 1331001) {
-	var multiplier = 1.75;
-  calcSLS(multiplier);
-} else
-if (xyz < 2197001) {
-	var multiplier = 1.9;
-  calcSLS(multiplier);
-} else
-if (xyz < 2744001) {
-	var multiplier = 2.05;
-  calcSLS(multiplier);
-} else
-if (xyz < 3375001) {
-	var multiplier = 2.15;
-  calcSLS(multiplier);
-} else
-if (xyz < 4096001) {
-	var multiplier = 2.3;
-  calcSLS(multiplier);
-} else
-if (xyz < 4913001) {
-	var multiplier = 2.45;
-  calcSLS(multiplier);
-} else
-if (xyz < 5832001) {
-	var multiplier = 2.6;
-  calcSLS(multiplier);
-} else
-if (xyz < 6859001) {
-	var multiplier = 2.75;
-  calcSLS(multiplier);
-} else
-if (xyz < 8000001) {
-	var multiplier = 2.95;
-  calcSLS(multiplier);
-} else
-if (xyz < 15625001) {
-	var multiplier = 4;
-  calcSLS(multiplier);
-} else
-if (xyz < 120000001) {
-	var multiplier = 5;
-  calcSLS(multiplier);
-} 
+//if smaller than x use following multiplier
+//use . after comma
+var multipliers = `
+1001:-0.3;
+8001:0.3;
+27001:0.5;
+64001:0.62;
+125001:0.8;
+216001:0.9;
+343001:1.05;
+512001:1.2;
+729001:1.32;
+1000001:1.47;
+1331001:1.75;
+2197001:1.9;
+2744001:2.05;
+3375001:2.15;
+4096001:2.3;
+4913001:2.45;
+5832001:2.6;
+6859001:2.75;
+8000001:2.95;
+15625001:4;
+120000001:5;
+`
+
+var multiplierArray = multipliers.split(';');
+for (var i = 0; i < multiplierArray.length; i++) {
+  var helper = multiplierArray[i].split(':');
+  if (xyz < helper[0]) {
+    calcSLS(helper[1]);
+    break;
+  }
+}
