@@ -1141,7 +1141,18 @@ function p3dCalculatePrintingCost( product_info ) {
 		}
 		else if ( printer.data('price_type')=="sla" ) {
       // voeg volumefactor toe
-      var printer_volume_pricing_array = ["0:4.641", "64000:3.24", "125000:2.42", "216000:1.9", "343000:1.6", "512000:1.5", "729000:1.4", "1000000:1.2", "1728000:1.1"];
+      var printer_volume_pricing_string = `
+        0:4.641;
+        64000:3.24;
+        125000:2.42;
+        216000:1.9;
+        343000:1.6;
+        512000:1.5;
+        729000:1.4;
+        1000000:1.2;
+        1728000:1.1
+        `;
+      var printer_volume_pricing_array = printer_volume_pricing_string.split(';');
         for (var i = 0; i < printer_volume_pricing_array.length; i++) {
           var discount_rule = printer_volume_pricing_array[i].split(':');
           if (discount_rule.length == 2) {
