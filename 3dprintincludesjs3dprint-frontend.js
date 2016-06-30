@@ -1170,20 +1170,21 @@ function p3dCalculatePrintingCost( product_info ) {
 			//printing_cost=product_info['model']['weight']*printer.data('price')*1000000000000;
       // added dimensions
 
-      var x = product_info['model']['x_dim'];
-      var y = product_info['model']['y_dim'];
-      var z = product_info['model']['z_dim'];
+      // standaard dimensies zijn in cm, converteren naar mm
+      var x = product_info['model']['x_dim'] * 100;
+      var y = product_info['model']['y_dim'] * 100;
+      var z = product_info['model']['z_dim'] * 100;
       var xyz = x * y * z;
 
       var calcSLS = function(multiplier) {
         if (z * z< x * y) {
-            printing_cost = (3.14 + ( 0.0023 * x * z))+ ( (0.042 * (( x*y)/(x*10))) * (z-1)) * multiplier
+            printing_cost = (3.14 + ( 0.0023 * x * z))+ ( (0.042 * (( x*y)/(x*10))) * (z-1)) * multiplier;
         } else
         if (x < z) {
-            printing_cost = (3.14 + ( 0.0023 * x * z))+ ( (0.042 * (( z*y)/(z*10))) * (x-1)) * multiplier
+            printing_cost = (3.14 + ( 0.0023 * x * z))+ ( (0.042 * (( z*y)/(z*10))) * (x-1)) * multiplier;
         } else
         {
-            printing_cost = (3.14 + ( 0.0023 * x * y))+ ( (0.042 * (( x*z)/(x*10))) * (y-1)) * multiplier
+            printing_cost = (3.14 + ( 0.0023 * x * y))+ ( (0.042 * (( x*z)/(x*10))) * (y-1)) * multiplier;
         }
       };
 
