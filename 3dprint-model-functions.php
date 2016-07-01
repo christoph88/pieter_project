@@ -565,7 +565,64 @@ function p3d_calculate_printing_cost( $printer_id, $material_id, $coating_id, $p
       $printing_cost = 50.50 + $printing_vol * $printer['price'];
 		}
 		elseif ( $printer['price_type']=="sls" ) {
-			$printing_cost = 500000;
+
+      $x = $product_info['model']['x_dim'] * 100;
+      $y = $product_info['model']['y_dim'] * 100;
+      $z = $product_info['model']['z_dim'] * 100;
+      $xyz = ($x * $y * $z);
+
+      function calcSLS($multiplier, $x, $y, $z, $xyz) {
+        if ($z * $z< $x * $y) {
+            return (3.14 + ( 0.0023 * $x * $z))+ ( (0.042 * (( $x*$y)/($x*10))) * (z-1)) * $multiplier;
+        } else
+        if ($x < $z) {
+            return (3.14 + ( 0.0023 * $x * $z))+ ( (0.042 * (( $z*$y)/($z*10))) * ($x-1)) * $multiplier;
+        } else
+        {
+            return (3.14 + ( 0.0023 * $x * $y))+ ( (0.042 * (( $x*$z)/($x*10))) * ($y-1)) * $multiplier;
+        }
+      };
+
+
+      //if smaller than x use following multiplier
+      //use . for a comma
+      //use : to split x and multiplier
+      //use ; to define end of multiplier and start a new comparison
+      $multiplierString = "
+      1001:-0.3;
+      8001:0.3;
+      27001:0.5;
+      64001:0.62;
+      125001:0.8;
+      216001:0.9;
+      343001:1.05;
+      512001:1.2;
+      729001:1.32;
+      1000001:1.47;
+      1331001:1.75;
+      2197001:1.9;
+      2744001:2.05;
+      3375001:2.15;
+      4096001:2.3;
+      4913001:2.45;
+      5832001:2.6;
+      6859001:2.75;
+      8000001:2.95;
+      15625001:4;
+      120000001:5;
+      ";
+
+      $multiplierArray = explode(";",$multiplierString);
+      for ($i = 0; $i < count($multiplierArray); $i++) {
+        $helper = explode(":",$multiplierArray[$i]);
+        if ($xyz < $helper[0]) {
+          $printing_cost = calcSLS($helper[1], $x, $y, $z, $xyz);
+          return $printing_cost;
+          break;
+        }
+      }
+      $printing_cost = $printing_cost;
+
 		}
 	}
 	elseif ( strstr ( $printer['price'], ':' ) ) {

@@ -13,9 +13,9 @@ $product_info['model']['z_dim'] = 10;
 $x = $product_info['model']['x_dim'] * 100;
 $y = $product_info['model']['y_dim'] * 100;
 $z = $product_info['model']['z_dim'] * 100;
-$xyz = $x * $y * $z;
+$xyz = ($x * $y * $z);
 
-function calcSLS($multiplier) {
+function calcSLS($multiplier, $x, $y, $z, $xyz) {
   if ($z * $z< $x * $y) {
       return (3.14 + ( 0.0023 * $x * $z))+ ( (0.042 * (( $x*$y)/($x*10))) * (z-1)) * $multiplier;
   } else
@@ -60,11 +60,11 @@ $multiplierArray = explode(";",$multiplierString);
 for ($i = 0; $i < count($multiplierArray); $i++) {
   $helper = explode(":",$multiplierArray[$i]);
   if ($xyz < $helper[0]) {
-    $printing_cost = calcSLS($helper[1]);
+    $printing_cost = calcSLS($helper[1], $x, $y, $z, $xyz);
+    return $printing_cost;
     break;
   }
 }
-
-echo $printing_cost;
+$printing_cost = $printing_cost;
 
 ?>
