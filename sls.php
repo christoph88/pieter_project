@@ -6,7 +6,6 @@ $product_info['model']['x_dim'] = 10;
 $product_info['model']['y_dim'] = 10;
 $product_info['model']['z_dim'] = 10;
 
-
 //printing_cost=product_info['model']['weight']*printer.data('price')*1000000000000;
 // added dimensions
 
@@ -62,7 +61,6 @@ for ($i = 0; $i < count($multiplierArray); $i++) {
   $helper = explode(":",$multiplierArray[$i]);
   if ($xyz < $helper[0]) {
     $printing_cost = calcSLS($helper[1]);
-    return $printing_cost;
     break;
   }
 }
