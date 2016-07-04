@@ -59,7 +59,6 @@ function p3d_surface_area($p1, $p2, $p3) {
 	return 0.5 * sqrt($cx*$cx + $cy*$cy + $cz*$cz);
 }    
 
-
 function p3d_get_model_stats( $filepath, $unit, $scale = 1, $printer_id = 1, $infill = 20 ) {
 	$total_volume = 0;
 	$surface_area = 0;
@@ -69,7 +68,7 @@ function p3d_get_model_stats( $filepath, $unit, $scale = 1, $printer_id = 1, $in
 	$db_printers = p3d_get_option('3dp_printers');
 	$settings =get_option('3dp_setttings');
 	$printer = $db_printers[$printer_id];
-	$model_key = $printer['layer_height']."_".$printer['wall_thickness']."_".$printer['nozzle_size']."_".$infill."_".$scale."_".$unit;
+	$model_key = $printer['layer_height']."_".$printer['wall_thickness']."_".$printer['nozzle_size']."_".$infill."_".$scale."_".$unit."_".$printer['support']."_".$printer['support_type']."_".$printer['support_angle'];
 	if (is_numeric($scale) && $scale!=1) {
 		$path_parts = pathinfo($filepath);
 		$extension = $path_parts['extension'];
@@ -86,7 +85,8 @@ function p3d_get_model_stats( $filepath, $unit, $scale = 1, $printer_id = 1, $in
 		$cached_stats_array=$p3d_cache[md5_file( $filepath )];
 	}
 
-	if ( is_array( $cached_stats_array ) 
+	
+/*	if ( is_array( $cached_stats_array ) 
 	&& count( $cached_stats_array )>0 
 	&& $cached_stats_array['material_volume']>0 
 	&& $cached_stats_array['box_volume']>0 
@@ -94,8 +94,9 @@ function p3d_get_model_stats( $filepath, $unit, $scale = 1, $printer_id = 1, $in
 	&& $cached_stats_array['x_dim']>0 
 	&& $cached_stats_array['y_dim']>0 
 	&& $cached_stats_array['z_dim']>0 
-	&& ($settings['api_analyse']=='on' && $cached_stats_array[$model_key]>0)
-	&& !$resize ) {
+	&& ($settings['api_analyse']=='on' && $cached_stats_array[$model_key]['model_filament']>0)
+	&& !$resize ) { */
+	if (false) {
 
 		$skip_parse=true;
 		$total_volume=$cached_stats_array['material_volume'];
@@ -440,16 +441,22 @@ function p3d_get_model_stats( $filepath, $unit, $scale = 1, $printer_id = 1, $in
 
 
 	//analysed volume
-	if ( isset($p3d_cache[md5_file($filepath)][$model_key]) && (float)$p3d_cache[md5_file($filepath)][$model_key]>0) {
-		$total_volume = $p3d_cache[md5_file($filepath)][$model_key]/1000;
+	$print_time = 0;
+
+	if ( isset($p3d_cache[md5_file($filepath)][$model_key]) ) {
+		if ( (float)$p3d_cache[md5_file($filepath)][$model_key]['model_filament']>0 )
+			$total_volume = $p3d_cache[md5_file($filepath)][$model_key]['model_filament']/1000;
+		if ( (float)$p3d_cache[md5_file($filepath)][$model_key]['print_time']>0 )
+			$print_time = $p3d_cache[md5_file($filepath)][$model_key]['print_time'];
 	}
 
-	$model_stats = array( 'material_volume'=>$total_volume, 'box_volume'=>$box_volume, 'surface_area'=>$surface_area, 'x_dim'=>$x_dim, 'y_dim'=>$y_dim, 'z_dim'=>$z_dim, 'polygons'=>$polygons, 'error'=>$error_message );
+	$model_stats = array( 'material_volume'=>$total_volume, 'print_time'=>$print_time, 'box_volume'=>$box_volume, 'surface_area'=>$surface_area, 'x_dim'=>$x_dim, 'y_dim'=>$y_dim, 'z_dim'=>$z_dim, 'polygons'=>$polygons, 'error'=>$error_message, $model_key => $total_volume );
 
-	if ($resize)
-		$p3d_cache[md5_file($filepath_write)]=$model_stats;
-	else		
+	if ($settings['api_analyse']=='on')
+		$p3d_cache[md5_file($filepath)][$model_key]=$model_stats;
+	else
 		$p3d_cache[md5_file($filepath)]=$model_stats;
+
 	update_option('3dp_cache', $p3d_cache);
 
 	$model_stats = apply_filters( '3dprint_get_model_stats', $model_stats, $filepath );
@@ -458,11 +465,17 @@ function p3d_get_model_stats( $filepath, $unit, $scale = 1, $printer_id = 1, $in
 
 
 function p3d_calculate_printing_cost( $printer_id, $material_id, $coating_id, $product_info, $attributes ) {
+	global $min_price;
+
 	$printing_cost=$material_cost=$coating_cost=0;
 	$materials_array = p3d_get_option( '3dp_materials' );
 	$material = $materials_array[$material_id];
 	$material_coeff = 100;
 	$p3d_attr_prices=p3d_get_option('3dp_attr_prices');
+	$settings = p3d_get_option('3dp_settings');
+	$p3d_file_url_meta = get_post_meta($product_info['product_id'], 'p3d_file_url'); $p3d_file_url = $p3d_file_url_meta[0];
+	$p3d_product_price_type_meta = get_post_meta($product_info['product_id'], 'p3d_product_price_type'); $p3d_product_price_type = $p3d_product_price_type_meta[0];
+
 
 	if (count($attributes)) {
 		foreach ($attributes as $attr_name => $attr_value) {
@@ -504,37 +517,8 @@ function p3d_calculate_printing_cost( $printer_id, $material_id, $coating_id, $p
 		elseif ( $material['price_type']=='gram' ) {
 			$material_cost = $weight * $material['price'];
 		}
-	}
-
-	elseif ( strstr ($material['price'], ':' ) ) {
-		$material['price']=trim($material['price']);
-		$material_volume_pricing_array = explode(';', $material['price']);
-		foreach ($material_volume_pricing_array as $discount_rule) {
-			list ($amount, $price) = explode(':', $discount_rule);
-
-			if ( $material['price_type']=='cm3' ) {
-				if ($printing_volume >= $amount) {
-					$material_cost = ( $printing_volume ) * $price;
-				}
-			}
-			elseif ( $material['price_type']=='gram' ) {
-				if ($weight >= $amount) {
-					$material_cost = $weight * $price;
-				}
-			}
-		}
-	}
-
-
-	if ( is_numeric( $printer['price'] ) ) {
-		if ( $printer['price_type']=="material_volume" ) {
-			$printing_cost = ( $printing_volume ) * $printer['price'];
-		}
-		elseif ( $printer['price_type']=="box_volume" ) {
-			$printing_cost = $product_info['model']['box_volume'] * $printer['price'];
-		}
-		elseif ( $printer['price_type']=="gram" ) {
-			$printing_cost = $weight * $printer['price'];
+		elseif ( $material['price_type']=='fixed' ) {
+			$material_cost = $material['price'];
 		}
 		elseif ( $printer['price_type']=="sla" ) {
       // voeg volumefactor toe
@@ -625,6 +609,49 @@ function p3d_calculate_printing_cost( $printer_id, $material_id, $coating_id, $p
 
 		}
 	}
+
+	elseif ( strstr ($material['price'], ':' ) ) {
+		$material['price']=trim($material['price']);
+		$material_volume_pricing_array = explode(';', $material['price']);
+		foreach ($material_volume_pricing_array as $discount_rule) {
+			list ($amount, $price) = explode(':', $discount_rule);
+
+			if ( $material['price_type']=='cm3' ) {
+				if ($printing_volume >= $amount) {
+					$material_cost = ( $printing_volume ) * $price;
+				}
+			}
+			elseif ( $material['price_type']=='gram' ) {
+				if ($weight >= $amount) {
+					$material_cost = $weight * $price;
+				}
+			}
+			elseif ( $material['price_type']=='fixed' ) {
+				if ($printing_volume >= $amount) {
+					$material_cost = $price;
+				}
+			}
+		}
+	}
+
+
+	if ( is_numeric( $printer['price'] ) ) {
+		if ( $printer['price_type']=="material_volume" ) {
+			$printing_cost = ( $printing_volume ) * $printer['price'];
+		}
+		elseif ( $printer['price_type']=="box_volume" ) {
+			$printing_cost = $product_info['model']['box_volume'] * $printer['price'];
+		}
+		elseif ( $printer['price_type']=="gram" ) {
+			$printing_cost = $weight * $printer['price'];
+		}
+		elseif ( $printer['price_type']=="hour" ) {
+			$printing_cost = ($product_info['model']['print_time'] /3600) * $printer['price'];
+		}
+		elseif ( $printer['price_type']=="fixed" ) {
+			$printing_cost = $printer['price'];
+		}
+	}
 	elseif ( strstr ( $printer['price'], ':' ) ) {
 		$printer['price']=trim($printer['price']);
 		$printer_volume_pricing_array = explode(';', $printer['price']);
@@ -645,12 +672,23 @@ function p3d_calculate_printing_cost( $printer_id, $material_id, $coating_id, $p
 					$printing_cost = $weight * $price;
 				}
 			}
+			elseif ( $printer['price_type']=="fixed" ) {
+				if ($printing_volume >= $amount) {
+					$printing_cost = $price;
+				}
+			}
 		}
 	}
 
+
 	if ( is_numeric ( $coating_id ) ) {
 		if ( is_numeric($coating['price']) ) {
-			$coating_cost = $product_info['model']['surface_area'] * $coating['price'];
+			if ($coating['price_type']=='cm2') {
+				$coating_cost = $product_info['model']['surface_area'] * $coating['price'];
+			}
+			elseif ($coating['price_type']=='fixed') {
+				$coating_cost = $coating['price'];
+			}
 		}
 
 		elseif ( strstr ( $coating['price'], ':' ) ) {
@@ -659,8 +697,15 @@ function p3d_calculate_printing_cost( $printer_id, $material_id, $coating_id, $p
 
 			foreach ($surface_area_pricing_array as $discount_rule) {
 				list ($amount, $price) = explode(':', $discount_rule);
-				if ($product_info['model']['surface_area'] >= $amount) {
-					$coating_cost = $product_info['model']['surface_area'] * $price;
+				if ($coating['price_type']=='cm2') {
+					if ($product_info['model']['surface_area'] >= $amount) {
+						$coating_cost = $product_info['model']['surface_area'] * $price;
+					}
+				}
+				else if ($coating['price_type']=='fixed') {
+					if ($product_info['model']['surface_area'] >= $amount) {
+						$coating_cost = $price;
+					}
 				}
 			}
 	
@@ -712,9 +757,21 @@ function p3d_calculate_printing_cost( $printer_id, $material_id, $coating_id, $p
 		}
 	}
 
+	if ($settings['minimum_price_type']=='starting_price') {
+		$total = $total + $min_price;
+	}
+	elseif ($settings['minimum_price_type']=='minimum_price') {
+		if ($total < $min_price) 
+			$total = $min_price;
+	}
 
+
+	if (strlen($p3d_file_url)>0 && $p3d_product_price_type=='fixed') {
+		$total = $min_price;
+	}
 
 	$total = apply_filters( '3dprint_calculate_printing_cost', $total, $printer_id, $material_id, $coating_id, $product_info, $attributes );
+
 	return $total;
 }
 

@@ -15,6 +15,8 @@ p3d.refresh_interval = "";
 p3d.refresh_interval1 = "";
 p3d.refresh_interval1_running = false;
 p3d.uploading = false;
+p3d.checking = false;
+p3d.analyse_error = false;
 
 window.onload = function() {
 	jQuery('#price-container span.amount').html('&nbsp;');
@@ -138,7 +140,10 @@ window.onload = function() {
 		infill=jQuery('input[name=product_infill]').data('id');
 	}
 
-	if (jQuery('input[name=get_product_model]').val()) {
+	if (p3d.file_url) {
+		product_file=p3d.file_url.split('/').reverse()[0];
+	}
+	else if (jQuery('input[name=get_product_model]').val()) {
 		product_file=jQuery('input[name=get_product_model]').val();
 		jQuery.cookie('p3d_file', product_file, { expires: p3d.cookie_expire });
 	}
@@ -451,10 +456,6 @@ p3d_uploader.bind('FileUploaded', function(p3d_uploader,file,response) {
 jQuery( "form.variations_form" ).bind( "submit", function() {
 	//get resize scale
 	jQuery('#p3d-resize-scale').val(p3d.resize_scale);
-	var no_request = jQuery('#no_request').val();
-	if (no_request == '0') {
-		jQuery('input[name=add-to-cart]').remove();
-	}
 	//screenshot of the current product
 	jQuery('#p3d-thumb').val(window.p3d_canvas.toDataURL().replace('data:image/png;base64,',''));
 	window.wp.hooks.doAction( '3dprint.productScreenshot');
@@ -491,6 +492,7 @@ function p3dRepairModel (filename) {
 
 	jQuery.ajax({
 		method: "POST",
+		type: "POST",
 		url: p3d.url,
 		data: { action: "p3d_handle_repair", filename: filename }
 		})
@@ -522,52 +524,43 @@ function p3dRepairModel (filename) {
 }
 
 function p3dAnalyseModel (filename) {
+
+	if (p3d.file_url && p3d.file_url.length>0 && p3d.product_price_type && p3d.product_price_type=='fixed') {
+		return;
+	}
 	clearInterval(p3d.refresh_interval);	
 	clearInterval(p3d.refresh_interval1);	
 	p3d.refresh_interval1_running = false;
 
 	if(p3d.xhr1 && p3d.xhr1.readyState != 4) {
 		p3d.xhr1.abort();
-		jQuery('#p3d-repair-status').hide();
+		//jQuery('#p3d-repair-status').hide();
 	}
 	if(p3d.xhr2 && p3d.xhr2.readyState != 4) {
 		p3d.xhr2.abort();
 		jQuery('#p3d-analyse-status').hide();
-		jQuery('#stats-material-volume-loading, #stats-material-weight-loading').hide();
+		jQuery('#stats-material-volume-loading, #stats-material-weight-loading, #stats-hours-loading').hide();
 	}
 
 	if (p3d.api_analyse!='on') return;
 	if (typeof(filename)=='undefined' || filename.length==0) return;
 	if (p3d.uploading) return;
 
-//	console.log(typeof(filename));
-	var file_ext = filename.split('.').pop().toLowerCase();
-	if (file_ext!='stl') { 
-		if  (p3d.pricing=='checkout') {
-			jQuery('#p3d-console').html(p3d.text_cant_process_obj).show(); 
-			jQuery('#add-cart-wrapper .variations_button').hide();
-			jQuery('#p3d-request-form').show();
-		        jQuery('#price-container').css('visibility', 'hidden');
-			jQuery('#p3d-analyse-status').hide();
-			jQuery('#stats-material-volume-loading, #stats-material-weight-loading').hide();
-			jQuery('#no_request').val('0');
-		}
-		return;
+	p3d.analyse_error = false;	      
+
+
+	if  (p3d.pricing=='checkout') {
+		jQuery('#p3d-console').html('').hide(); 
+		jQuery('#add-cart-wrapper .variations_button').show();
 	}
-	else {
-		if  (p3d.pricing=='checkout') {
-			jQuery('#p3d-console').html('').hide(); 
-			jQuery('#add-cart-wrapper .variations_button').show();
-			jQuery('#p3d-request-form').hide();
-			jQuery('#no_request').val('1');
-		}
-	}
+
 
 	if  (p3d.pricing=='checkout') {
 	        jQuery('#add-cart-container').css('visibility', 'hidden');
 	        jQuery('#p3d-quote-loading').css('visibility', 'visible');
 	}
-        jQuery('#price-container').css('visibility', 'hidden');
+
+	jQuery('#price-container').css('visibility', 'hidden');
 
 
 
@@ -575,9 +568,15 @@ function p3dAnalyseModel (filename) {
 	var layer_height = jQuery('input[name=product_printer]:checked').data('layer-height');
 	var wall_thickness = jQuery('input[name=product_printer]:checked').data('wall-thickness');
 	var nozzle_size = jQuery('input[name=product_printer]:checked').data('nozzle-size');
+	var speed = jQuery('input[name=product_printer]:checked').data('speed');
+	var speed_type = jQuery('input[name=product_printer]:checked').data('speed_type');
+	var support = jQuery('input[name=product_printer]:checked').data('support');
+	var support_type = jQuery('input[name=product_printer]:checked').data('support_type');
+	var support_angle = jQuery('input[name=product_printer]:checked').data('support_angle');
 	var infill = jQuery('input[name=product_infill]:checked').data('id');
 	var filament_diameter = jQuery('input[name=product_filament]:checked').data('diameter');
 	var unit = jQuery('#pa_p3d_unit').val();
+
 	if (typeof(infill) == 'undefined') return false;
 	if (typeof(layer_height) == 'undefined') return false;
 
@@ -585,8 +584,8 @@ function p3dAnalyseModel (filename) {
 	jQuery('#p3d-analyse-message').html(p3d.text_analysing_model);
 	jQuery('#p3d-analyse-image').show();
 	jQuery('#p3d-analyse-percent').html('1%');
-	jQuery('#stats-material-volume, #stats-weight').hide();
-	jQuery('#stats-material-volume-loading, #stats-material-weight-loading').show();
+	jQuery('#stats-material-volume, #stats-weight, #stats-hours').hide();
+	jQuery('#stats-material-volume-loading, #stats-material-weight-loading, #stats-hours-loading').show();
 	if  (p3d.pricing=='checkout') {
 	        jQuery('#add-cart-container').css('visibility', 'hidden');
 	        jQuery('#p3d-quote-loading').css('visibility', 'visible');
@@ -596,12 +595,19 @@ function p3dAnalyseModel (filename) {
 
 	p3d.xhr1=jQuery.ajax({
 		method: "POST",
+		type: "POST",
 		url: p3d.url,
 		data: { action: "p3d_handle_analyse", 
+			product_id: p3d.product_id,
 			filename: filename, 
 			layer_height: layer_height,	
 			wall_thickness: wall_thickness,
 			nozzle_size: nozzle_size,
+			speed: speed,
+			speed_type: speed_type,
+			support: support,
+			support_type: support_type,
+			support_angle: support_angle,
 			infill: infill,
 			scale: p3d.resize_scale,
 			unit: unit,
@@ -612,18 +618,20 @@ function p3dAnalyseModel (filename) {
 			var data = jQuery.parseJSON( msg );
 			var server = data.server;
 			if (typeof(data.error)!=='undefined') {
+				p3d.analyse_error = true;
 				jQuery('#p3d-console').html(data.error.message).show();
 				jQuery('#p3d-quote-loading').css('visibility', 'hidden');
 				jQuery('#p3d-repair-status').hide();
 				jQuery('#p3d-analyse-status').hide();
 
-				jQuery('#stats-material-volume-loading, #stats-material-weight-loading').hide();
+				jQuery('#stats-material-volume-loading, #stats-material-weight-loading, #stats-hours-loading').hide();
 
 				return false;
 
 			}
 
 			if (data.status == '2') { //in progress
+				p3d.checking = true;
 			        jQuery('#price-container').css('visibility', 'hidden');
 				if (p3d.pricing=='checkout') {
 				        jQuery('#add-cart-container').css('visibility', 'hidden');
@@ -638,6 +646,8 @@ function p3dAnalyseModel (filename) {
 			}
 			else if (data.status == '0') { //failed
 				jQuery('#p3d-repair-message').html(p3d.text_model_analyse_failed);
+				p3d.analyse_error = true;
+
 				if (typeof(data.error)!=='undefined') { 
 					jQuery('#p3d-repair-message').html(p3d.text_model_analyse_failed + ' : ' + data.error.message);
 				}
@@ -650,9 +660,22 @@ function p3dAnalyseModel (filename) {
 
 function p3danalyseCheck(filename, server) {
 
+	if (p3d.file_url && p3d.file_url.length>0 && p3d.product_price_type && p3d.product_price_type=='fixed') {
+		return;
+	}
+
+	if(p3d.xhr2 && p3d.xhr2.readyState != 4) {
+		return;
+	}
+        
 	var layer_height = jQuery('input[name=product_printer]:checked').data('layer-height');
 	var wall_thickness = jQuery('input[name=product_printer]:checked').data('wall-thickness');
 	var nozzle_size = jQuery('input[name=product_printer]:checked').data('nozzle-size');
+	var speed = jQuery('input[name=product_printer]:checked').data('speed');
+	var speed_type = jQuery('input[name=product_printer]:checked').data('speed_type');
+	var support = jQuery('input[name=product_printer]:checked').data('support');
+	var support_type = jQuery('input[name=product_printer]:checked').data('support_type');
+	var support_angle = jQuery('input[name=product_printer]:checked').data('support_angle');
 	var infill = jQuery('input[name=product_infill]:checked').data('id');
 	var filament_diameter = jQuery('input[name=product_filament]:checked').data('diameter');
 	var unit = jQuery('#pa_p3d_unit').val();
@@ -666,13 +689,20 @@ function p3danalyseCheck(filename, server) {
 
 	p3d.xhr2=jQuery.ajax({
 		method: "POST",
+		type: "POST",
 		url: p3d.url,
 		data: { action: "p3d_handle_analyse_check", 
+			product_id: p3d.product_id,
 			filename: filename, 
 			server: server,
 			layer_height: layer_height,	
 			wall_thickness: wall_thickness,
 			nozzle_size: nozzle_size,
+			speed: speed,
+			speed_type: speed_type,
+			support: support,
+			support_type: support_type,
+			support_angle: support_angle,
 			infill: infill,
 			scale: p3d.resize_scale,
 			unit: unit
@@ -680,8 +710,9 @@ function p3danalyseCheck(filename, server) {
 		})
 		.done(function( msg ) {
 			var data = jQuery.parseJSON( msg );
-
+			
 			if (typeof(data.error)!=='undefined') {
+				p3d.analyse_error = true;
 				jQuery('#p3d-analyse-status').show();
 				jQuery('#p3d-analyse-message').html(p3d.text_model_analyse_failed);
 				jQuery('#p3d-analyse-image').hide();
@@ -690,22 +721,25 @@ function p3danalyseCheck(filename, server) {
 				jQuery('#p3d-file-loading').hide();
 				jQuery('#p3d-quote-loading').css('visibility', 'hidden');
 				//jQuery('#stats-material-volume, #stats-weight').hide();
-				jQuery('#stats-material-volume-loading, #stats-material-weight-loading').hide();
+				jQuery('#stats-material-volume-loading, #stats-material-weight-loading, #stats-hours-loading').hide();
 				jQuery('#p3d-analyse-percent').html('');
 
 				clearInterval(p3d.refresh_interval);
 			}
 			if (data.status=='1') {
+				p3d.checking = false;
+				p3d.analyse_error = false;
 				jQuery('#stats-material-volume').html((data.model_filament/1000).toFixed(2));
 				window.model_total_volume = data.model_filament;
+				p3d.print_time = data.print_time;
 				jQuery('#p3d-analyse-status').show();
 				jQuery('#p3d-analyse-message').html(p3d.text_model_analysed);
 				jQuery('#p3d-analyse-image').hide();
 				jQuery('#add-cart-container').css('visibility', 'visible');
 			        jQuery('#p3d-quote-loading').css('visibility', 'hidden');
 			        jQuery('#price-container').css('visibility', 'visible');
-				jQuery('#stats-material-volume, #stats-weight').show();
-				jQuery('#stats-material-volume-loading, #stats-material-weight-loading').hide();
+				jQuery('#stats-material-volume, #stats-weight, #stats-hours').show();
+				jQuery('#stats-material-volume-loading, #stats-material-weight-loading, #stats-hours-loading').hide();
 				jQuery('#p3d-analyse-percent').html('100%');
 				p3dGetStats();
 				clearInterval(p3d.refresh_interval);
@@ -985,7 +1019,7 @@ function p3dSelectPrinter(obj) {
 	
 
 
-
+	if (jQuery('#pa_p3d_infill').length>0) {
 	//check compatible infills
 	var compatible_infills = new Array();
 	jQuery('input[name=product_infill]').each(function() {
@@ -1010,6 +1044,7 @@ function p3dSelectPrinter(obj) {
 
 		}
 	});
+
 	//check if a compatible infill is already selected
 	var selected = false;
 	for (i=0;i<compatible_infills.length;i++) {
@@ -1018,6 +1053,7 @@ function p3dSelectPrinter(obj) {
 		}
 
 	}
+
 
 	if (!selected && compatible_infills.length>0) {
 		var default_infill = jQuery(obj).find('input').data('default-infill');
@@ -1028,6 +1064,7 @@ function p3dSelectPrinter(obj) {
 			}
 
 		}
+	}
 	}
 
 
@@ -1090,6 +1127,8 @@ function p3dCheckPrintability() {
 }
 
 function p3dCalculatePrintingCost( product_info ) {
+
+
 	var material = jQuery('input[name=product_filament]:checked');
 	var coating = jQuery('input[name=product_coating]:checked');
 	var printer = jQuery('input[name=product_printer]:checked');
@@ -1108,6 +1147,9 @@ function p3dCalculatePrintingCost( product_info ) {
 		else if ( material.data('price_type')=='gram' ) {
 			material_cost=product_info['model']['weight']*material.data('price');
 		}
+		else if ( material.data('price_type')=='fixed' ) {
+			material_cost=material.data('price');
+		}
 	}
 	else if ( material.data('price').indexOf(':')>-1 ) {
 
@@ -1125,6 +1167,10 @@ function p3dCalculatePrintingCost( product_info ) {
 					if (product_info['model']['weight'] >= amount) 
 						material_cost = product_info['model']['weight'] * price;
 				}
+				else if ( material.data('price_type')=='fixed' ) {
+					if (printing_volume >= amount ) 
+						material_cost = price;
+				}
 			}
 		}
 	}
@@ -1138,6 +1184,12 @@ function p3dCalculatePrintingCost( product_info ) {
 		}
 		else if ( printer.data('price_type')=="gram" ) {
 			printing_cost=product_info['model']['weight']*printer.data('price');
+		}
+		else if ( printer.data('price_type')=="hour" ) {
+			printing_cost = (parseFloat(p3d.print_time) / 3600) * printer.data('price');
+		}
+		else if ( printer.data('price_type')=="fixed" ) {
+			printing_cost = printer.data('price');
 		}
 		else if ( printer.data('price_type')=="sla" ) {
       // voeg volumefactor toe
@@ -1247,13 +1299,22 @@ function p3dCalculatePrintingCost( product_info ) {
 					if (product_info['model']['weight'] >= amount)
 						printing_cost = product_info['model']['weight'] * price;
 				}
+				else if ( printer.data('price_type')=='fixed' ) {
+					if (printing_volume >= amount)
+						printing_cost = price;
+				}
 			}
 		}
 	}
 
 	if (typeof(coating.data('price'))!=='undefined') {
 		if ( !isNaN ( coating.data('price') ) ) {
-			coating_cost = product_info['model']['surface_area'] * coating.data('price');
+			if ( coating.data('price_type')=='cm2' ) {
+				coating_cost = product_info['model']['surface_area'] * coating.data('price');
+			}
+			else if ( coating.data('price_type')=='fixed' ) {
+				coating_cost = coating.data('price');
+			}
 		}
 		else if ( coating.data('price').indexOf(':')>-1 ) {
 			var surface_area_pricing_array = coating.data('price').split(';');
@@ -1262,9 +1323,15 @@ function p3dCalculatePrintingCost( product_info ) {
 				if (discount_rule.length == 2) {
 					var amount = discount_rule[0];
 					var price = discount_rule[1];	
-					if (product_info['model']['surface_area'] >= amount) {
-						coating_cost = product_info['model']['surface_area'] * price;
+					if ( coating.data('price_type')=='cm2' ) {
+						if (product_info['model']['surface_area'] >= amount)
+							coating_cost = product_info['model']['surface_area'] * price;
 					}
+					else if ( coating.data('price_type')=='fixed' ) {
+						if (product_info['model']['surface_area'] >= amount)
+							coating_cost = price;
+					}
+
 				}
 			}
 		}
@@ -1291,7 +1358,9 @@ function p3dCalculatePrintingCost( product_info ) {
 
 	})
 
-
+	printing_cost = printing_cost || 0;
+	material_cost = material_cost || 0;
+	coating_cost = coating_cost || 0;
 	var total=printing_cost+material_cost+coating_cost;
 
 	jQuery( ".woo_attribute" ).each(function(){
@@ -1307,8 +1376,19 @@ function p3dCalculatePrintingCost( product_info ) {
 			total+=(total/100)*attr_price;
 		}
 	})
+	if (p3d.minimum_price_type=='starting_price')  {
+		total = total + parseFloat(p3d.min_price);
+	}
+	else if (p3d.minimum_price_type=='minimum_price') {
+		if (total < p3d.min_price) total = p3d.min_price;
+	}
 
-	if (total < parseFloat(p3d.min_price)) total = parseFloat(p3d.min_price);
+	if (p3d.file_url && p3d.file_url.length>0 && p3d.product_price_type && p3d.product_price_type=='fixed') {
+		total = p3d.min_price;
+	}
+
+	total = parseFloat(total);
+
 	total=window.wp.hooks.applyFilters('3dprint.calculatePrintingCost', total, product_info);
 	return total;
 }
@@ -1323,8 +1403,9 @@ function p3dGetStatsClientSide() {
 	scene.calcAABB();
 	var aabb=p3d.aabb;
 
-	if (p3d.api_analyse=='on')  //scaled on the server
+	if (p3d.api_analyse=='on') { //analysed on the server
 		var filament_volume = (window.model_total_volume/1000); //cm3
+	}
 	else
 		var filament_volume = (window.model_total_volume/1000)*Math.pow(p3d.resize_scale,3); //cm3
 
@@ -1382,7 +1463,7 @@ function p3dGetStats() {
 	jQuery('#add-cart-container').css('visibility','hidden');
 	jQuery('#p3d-console').html('').hide();
 
-
+	
 	var printer_id=jQuery('input:radio[name=product_printer]:checked').attr('data-id');
 	var material_id=jQuery('input:radio[name=product_filament]:checked').attr('data-id');
 	if (typeof(jQuery('input:radio[name=product_coating]:checked').attr('data-id'))!=='undefined')
@@ -1397,6 +1478,7 @@ function p3dGetStats() {
 		var product_info=p3dGetStatsClientSide();
 
 		var product_price=p3dCalculatePrintingCost(product_info);
+
 		var response = new Array();
 		response.model = new Array();
 		response.model = product_info['model'];
@@ -1426,7 +1508,8 @@ function p3dShowResponse(response) {
 		p3dShowError(response.error);
 		return;
 	}
-	if (window.p3d_uploader.state==1) jQuery('#p3d-quote-loading').css('visibility', 'hidden');
+
+	if (window.p3d_uploader.state==1 && !p3d.checking) jQuery('#p3d-quote-loading').css('visibility', 'hidden');
 	if (response.model) {
 		if (response.model.error) p3dShowError(response.model.error); //soft error
 		jQuery('#stats-material-volume').html(response.model.material_volume.toFixed(2));
@@ -1436,6 +1519,7 @@ function p3dShowResponse(response) {
 		jQuery('#stats-length').html(response.model.y_dim.toFixed(2));
 		jQuery('#stats-height').html(response.model.z_dim.toFixed(2));
 		jQuery('#stats-weight').html(response.model.weight.toFixed(2));
+		jQuery('#stats-hours').html((parseFloat(p3d.print_time)/3600).toFixed(1));
 
 		jQuery('#scale_x').val(response.model.x_dim.toFixed(2));
 		jQuery('#scale_y').val(response.model.y_dim.toFixed(2));
@@ -1447,7 +1531,7 @@ function p3dShowResponse(response) {
 		jQuery('.p3d-stats').css('visibility','visible');
 	}
 
-	if (p3dCheckPrintability() && !((p3d.xhr1 && p3d.xhr1.readyState != 4) || (p3d.xhr2 && p3d.xhr2.readyState != 4)) ) {
+	if ( !p3d.analyse_error && p3dCheckPrintability() && !((p3d.xhr1 && p3d.xhr1.readyState != 4) || (p3d.xhr2 && p3d.xhr2.readyState != 4)) && !p3d.checking) {
 
 		if (p3d.pricing!='request') {
 			jQuery('#price-container').css('visibility','visible');
@@ -1828,3 +1912,4 @@ if (window.FileReader && window.FileReader.prototype.readAsArrayBuffer) {
 } else {
 	p3d.filereader_supported=false;
 }
+

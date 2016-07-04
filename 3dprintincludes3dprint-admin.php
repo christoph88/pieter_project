@@ -54,6 +54,12 @@ function register_3dprint_menu_page_callback() {
 			$printers[$printer_id]['nozzle_size']=(float)( $_POST['3dp_printer_nozzle_size'][$printer_id] );
 			$printers[$printer_id]['price']= $_POST['3dp_printer_price'][$printer_id] ;
 			$printers[$printer_id]['price_type']=$_POST['3dp_printer_price_type'][$printer_id];
+			$printers[$printer_id]['speed']= $_POST['3dp_printer_speed'][$printer_id] ;
+			$printers[$printer_id]['speed_type']=$_POST['3dp_printer_speed_type'][$printer_id];
+			$printers[$printer_id]['support']=$_POST['3dp_printer_support'][$printer_id];
+			$printers[$printer_id]['support_type']=$_POST['3dp_printer_support_type'][$printer_id];
+			$printers[$printer_id]['support_angle']=$_POST['3dp_printer_support_angle'][$printer_id];
+
 
 			if ( isset($_POST['3dp_printer_materials']) && count( $_POST['3dp_printer_materials'][$printer_id] )>0 ) {
 				$printers[$printer_id]['materials']=implode(',',$_POST['3dp_printer_materials'][$printer_id]);
@@ -115,6 +121,7 @@ function register_3dprint_menu_page_callback() {
 			$coatings[$coating_id]['id']=$coating_id;
 			$coatings[$coating_id]['name']=sanitize_text_field( $_POST['3dp_coating_name'][$coating_id] );
 			$coatings[$coating_id]['price']=$_POST['3dp_coating_price'][$coating_id];
+			$coatings[$coating_id]['price_type']=$_POST['3dp_coating_price_type'][$coating_id];
 			$coatings[$coating_id]['color']=$_POST['3dp_coating_color'][$coating_id];
 			if ( isset($_POST['3dp_coating_materials']) && count( $_POST['3dp_coating_materials'][$coating_id] )>0 ) {
 				$coatings[$coating_id]['materials']=implode(',',$_POST['3dp_coating_materials'][$coating_id]);
@@ -206,14 +213,9 @@ function register_3dprint_menu_page_callback() {
 	$coatings=p3d_get_option( '3dp_coatings' );
 	$settings=p3d_get_option( '3dp_settings' );
 	$price_requests=p3d_get_option( '3dp_price_requests' );
-	
-//	if (!empty($printers)) $printers = p3d_sort_by_group_order($printers);
-//	if (!empty($materials)) $materials = p3d_sort_by_group_order($materials);
-//	if (!empty($coatings)) $coatings = p3d_sort_by_group_order($coatings);
-//	$unassigned_materials = p3d_get_unassigned_materials();
-//print_r(p3d_get_unassigned_coatings($coatings, $materials));
-//print_r(p3d_get_unassigned_materials($coatings, $materials));
 
+
+	add_thickbox(); 
 ?>
 <script language="javascript">
 function p3dCalculateFilamentPrice(material_obj) {
@@ -253,13 +255,29 @@ function p3dCalculateFilamentPrice(material_obj) {
 		<div id="3dp_tabs-0">
 			<form method="post" action="admin.php?page=3dprint#3dp_tabs-0">
 				<p><b><?php _e( 'Checkout', '3dprint' );?></b></p>
-				<select name="3dp_settings[pricing]">
-					<option <?php if ( $settings['pricing']=='checkout' ) echo 'selected';?> value="checkout"><?php _e( 'Calculate price and allow checkout' , '3dprint' );?></option>
-					<option <?php if ( $settings['pricing']=='request_estimate' ) echo 'selected';?> value="request_estimate"><?php _e( 'Give an estimate and request price', '3dprint' );?></option>
-					<option <?php if ( $settings['pricing']=='request' ) echo 'selected';?> value="request"><?php _e( 'Request price', '3dprint' );?></option>
-			 	</select>
-				<input type="hidden" name="action" value="update" />
-				<input type="hidden" name="page_options" value="new_option_name,some_other_option,option_etc" />
+				<table>
+					<tr>
+						<td><?php _e( 'Checkout', '3dprint' );?></td>
+						<td>
+							<select name="3dp_settings[pricing]">
+								<option <?php if ( $settings['pricing']=='checkout' ) echo 'selected';?> value="checkout"><?php _e( 'Calculate price and allow checkout' , '3dprint' );?></option>
+								<option <?php if ( $settings['pricing']=='request_estimate' ) echo 'selected';?> value="request_estimate"><?php _e( 'Give an estimate and request price', '3dprint' );?></option>
+								<option <?php if ( $settings['pricing']=='request' ) echo 'selected';?> value="request"><?php _e( 'Request price', '3dprint' );?></option>
+						 	</select>
+						</td>
+					</tr>
+					<tr>
+						<td><?php _e( 'Minimum Price', '3dprint' );?></td>
+						<td>
+							<select name="3dp_settings[minimum_price_type]">
+								<option <?php if ( $settings['minimum_price_type']=='minimum_price' ) echo 'selected';?> value="minimum_price"><?php _e( 'Minimum Price' , '3dprint' );?></option>
+								<option <?php if ( $settings['minimum_price_type']=='starting_price' ) echo 'selected';?> value="starting_price"><?php _e( 'Starting Price' , '3dprint' );?></option>
+						 	</select>
+							<img class="tooltip" title="<?php htmlentities(_e( 'Minimum Price: if total is less than minimum price then total = minimum price. <br> Starting Price: total = total + starting price.<br> The price is set on the product page.', '3dprint' ));?>" src="<?php echo plugins_url( '3dprint/images/question.png' ); ?>">
+						</td>
+					</tr>
+				</table>
+
 				<hr>
 				<p><b><?php _e( 'Product Viewer', '3dprint' );?></b></p>
 				<table>
@@ -275,6 +293,7 @@ function p3dCalculateFilamentPrice(material_obj) {
 								<option <?php if ( $settings['cookie_expire']=='1' ) echo 'selected';?> value="1">1
 								<option <?php if ( $settings['cookie_expire']=='2' ) echo 'selected';?> value="2">2
 							</select> <?php _e( 'days', '3dprint' );?> 
+
 						</td>
 					</tr>
 
@@ -377,8 +396,44 @@ function p3dCalculateFilamentPrice(material_obj) {
 						<td><input type="checkbox" name="3dp_settings[show_scale]" <?php if ($settings['show_scale']=='on') echo 'checked';?>></td>
 					</tr>
 					<tr>
+						<td><?php _e( 'Show File Unit', '3dprint' );?></td>
+						<td><input type="checkbox" name="3dp_settings[show_unit]" <?php if ($settings['show_unit']=='on') echo 'checked';?>></td>
+					</tr>
+					<tr>
 						<td><?php _e( 'Show Model Stats', '3dprint' );?></td>
-						<td><input type="checkbox" name="3dp_settings[show_model_stats]" <?php if ($settings['show_model_stats']=='on') echo 'checked';?>></td>
+						<td><input type="checkbox" name="3dp_settings[show_model_stats]" <?php if ($settings['show_model_stats']=='on') echo 'checked';?>>
+							<div id="show_model_stats_extra" style="display:none;">
+								<table>
+									<tr>
+										<td><?php _e( 'Material Volume', '3dprint' );?></td>
+										<td><input type="checkbox" name="3dp_settings[show_model_stats_material_volume]" <?php if ($settings['show_model_stats_material_volume']=='on') echo 'checked';?>></td>
+									</tr>
+									<tr>
+										<td><?php _e( 'Box Volume', '3dprint' );?></td>
+										<td><input type="checkbox" name="3dp_settings[show_model_stats_box_volume]" <?php if ($settings['show_model_stats_box_volume']=='on') echo 'checked';?>></td>
+									</tr>
+									<tr>
+										<td><?php _e( 'Surface Area', '3dprint' );?></td>
+										<td><input type="checkbox" name="3dp_settings[show_model_stats_surface_area]" <?php if ($settings['show_model_stats_surface_area']=='on') echo 'checked';?>></td>
+									</tr>
+									<tr>
+										<td><?php _e( 'Model Weight', '3dprint' );?></td>
+										<td><input type="checkbox" name="3dp_settings[show_model_stats_model_weight]" <?php if ($settings['show_model_stats_model_weight']=='on') echo 'checked';?>></td>
+									</tr>
+									<tr>
+										<td><?php _e( 'Model Dimensions', '3dprint' );?></td>
+										<td><input type="checkbox" name="3dp_settings[show_model_stats_model_dimensions]" <?php if ($settings['show_model_stats_model_dimensions']=='on') echo 'checked';?>></td>
+									</tr>
+									<tr>
+										<td><?php _e( 'Print Time', '3dprint' );?></td>
+										<td><input type="checkbox" name="3dp_settings[show_model_stats_model_hours]" <?php if ($settings['show_model_stats_model_hours']=='on') echo 'checked';?>></td>
+									</tr>
+
+								</table>
+							</div>
+
+							<a href="#TB_inline?width=300&height=200&inlineId=show_model_stats_extra" class="thickbox"><button onclick="return false;">...</button></a>
+						</td>
 					</tr>
 					<tr>
 						<td><?php _e( 'Show Printers', '3dprint' );?></td>
@@ -423,7 +478,7 @@ function p3dCalculateFilamentPrice(material_obj) {
 				</table>
 
 				<hr>
-				<p><b><?php _e( 'Analyse API (STL only)', '3dprint' );?></b></p>
+				<p><b><?php _e( 'Analyse API', '3dprint' );?></b></p>
 				<p><i><?php _e('This is needed for using infill and getting accurate material volume. Paid monthly subscription is required.', '3dprint');?></i></p>
 				<p><i><?php _e('Demo is available <a href="http://www.wp3dprinting.com/index.php/product/3d-printing-demo-product/">here.</a>', '3dprint');?></i></p>
 				<table>
@@ -454,112 +509,6 @@ function p3dCalculateFilamentPrice(material_obj) {
 
 <?php 			wp_nonce_field( 'update-options' ); ?>
 <?php
-			if ( !is_array($printers) || count( $printers )==0 ) {
-?>
-				<table class="form-table printer">
-					<tr>
-						<td colspan="2"><hr></td>
-					</tr>
-					<tr valign="top">
-						<th scope="row"><?php _e( 'Printer Name', '3dprint' ); ?></th>
-						<td><input type="text" name="3dp_printer_name[1]" value="Default Printer" /></td>
-					</tr>
-
-					<tr valign="top">
-						<th scope="row"><?php _e( 'Build Tray Length', '3dprint' ); ?></th>
-						<td><input type="text" name="3dp_printer_length[1]" value="200" /><?php _e( 'mm', '3dprint' );?></td>
-					</tr>
-
-					<tr valign="top">
-						<th scope="row"><?php _e( 'Build Tray Width', '3dprint' ); ?></th>
-						<td><input type="text" name="3dp_printer_width[1]" value="200" /><?php _e( 'mm', '3dprint' );?></td>
-					</tr>
-
-					<tr valign="top">
-						<th scope="row"><?php _e( 'Build Tray Height', '3dprint' ); ?></th>
-						<td><input type="text" name="3dp_printer_height[1]" value="200" /><?php _e( 'mm', '3dprint' );?></td>
-					</tr>
-
-					<tr valign="top">
-						<th scope="row"><?php _e( 'Layer Height', '3dprint' ); ?></th>
-						<td><input type="text" name="3dp_printer_layer_height[1]" value="0.1" /><?php _e( 'mm', '3dprint' );?></td>
-					</tr>
-
-					<tr valign="top">
-						<th scope="row"><?php _e( 'Wall Thickness', '3dprint' ); ?></th>
-						<td><input type="text" name="3dp_printer_wall_thickness[1]" value="0.8" /><?php _e( 'mm', '3dprint' );?></td>
-					</tr>
-
-					<tr valign="top">
-						<th scope="row"><?php _e( 'Nozzle Size', '3dprint' ); ?></th>
-						<td><input type="text" name="3dp_printer_nozzle_size[1]" value="0.4" /><?php _e( 'mm', '3dprint' );?></td>
-					</tr>
-
-					<tr class="printer_infills" valign="top">
-						<th scope="row"><?php _e( 'Infill Options', '3dprint' ); ?></th>
-						<td>
-							<select autocomplete="off" name="3dp_printer_infills[1][]" multiple="multiple" class="sumoselect">
-								<?php 
-									for ($j=0; $j<=10; $j++) {
-										echo '<option value="'.($j*10).'">'.($j*10).'%';
-									}
-								?>
-							</select> &nbsp;
-							<?php _e( 'Default Infill:', '3dprint' ); ?>
-							<select name="3dp_printer_default_infill[1]">
-								<?php 
-									for ($j=0; $j<=10; $j++) {
-										echo '<option value="'.($j*10).'">'.($j*10).'%';
-									}
-								?>
-		 					</select>
-						</td>
-					</tr>
-
-
-
-					<tr valign="top">
-						<th scope="row"><?php _e( 'Printing Cost', '3dprint' ); ?></th>
-						<td><input type="text" name="3dp_printer_price[1]" value="0.05" /><?php echo get_woocommerce_currency_symbol(); ?> <?php _e('per', '3dprint');?>
-							<select name="3dp_printer_price_type[1]">
-								<option value="box_volume"><?php _e('1 cm3 of Bounding Box Volume', '3dprint');?></option>
-								<option value="material_volume"><?php _e('1 cm3 of Material Volume', '3dprint');?></option>
-								<option value="gram"><?php _e('1 gram of Material', '3dprint');?></option>
-								<option value="sla"><?php _e('sla formula', '3dprint');?></option>
-								<option value="sls"><?php _e('sls formula', '3dprint');?></option>
-		 					</select>
-						</td>
-					</tr>
-
-					<tr class="printer_materials" valign="top">
-						<th scope="row"><?php _e( 'Materials', '3dprint' ); ?></th>
-						<td>
-							<select autocomplete="off" name="3dp_printer_materials[1][]" multiple="multiple" class="sumoselect">
-								<?php 
-									foreach ($materials as $j => $material) {
-										echo '<option value="'.$materials[$j]['id'].'">'.$materials[$j]['name'];
-									}
-								?>
-							</select>
-						</td>
-					</tr>
-
-					<tr valign="top">
-						<th scope="row"><?php _e( 'Group Name', '3dprint' ); ?></th>
-						<td><input type="text" name="3dp_printer_group_name[1]" value="" /></td>
-					</tr>
-
-					<tr valign="top">
-						<th scope="row"><?php _e( 'Sort Order', '3dprint' ); ?></th>
-						<td><input type="text" name="3dp_printer_sort_order[1]" value="0" /></td>
-					</tr>
-
-
-
-
-				</table>
-			<?php } ?>
-<?php
 
 	if ( is_array( $printers ) && count( $printers )>0 ) {
 
@@ -581,7 +530,7 @@ function p3dCalculateFilamentPrice(material_obj) {
 						</th>
 						<td>
 							<input type="text" name="3dp_printer_name[<?php echo $printer['id'];?>]" value="<?php echo $printer['name'];?>" />&nbsp;
-							<a class="remove_printer" href="javascript:void(0);" onclick="p3dRemovePrinter(<?php echo $printer['id'];?>);return false;">
+							<a style="<?php if (count( $printers )==1) echo 'display:none;';?>" class="remove_printer" href="javascript:void(0);" onclick="p3dRemovePrinter(<?php echo $printer['id'];?>);return false;">
 								<img alt="<?php _e( 'Remove Printer', '3dprint' );?>" title="<?php _e( 'Remove Printer', '3dprint' );?>" src="<?php echo plugins_url( '3dprint/images/remove.png' ); ?>">
 							</a>
 						</td>
@@ -604,17 +553,17 @@ function p3dCalculateFilamentPrice(material_obj) {
 
 					<tr valign="top">
 						<th scope="row"><?php _e( 'Layer Height', '3dprint' ); ?></th>
-						<td><input type="text" name="3dp_printer_layer_height[<?php echo $printer['id'];?>]" value="<?php echo $printer['layer_height'];?>" /><?php _e( 'mm', '3dprint' );?></td> 
+						<td><input type="text" name="3dp_printer_layer_height[<?php echo $printer['id'];?>]" value="<?php echo $printer['layer_height'];?>" /><?php _e( 'mm', '3dprint' );?> <img class="tooltip" title="<?php htmlentities(_e( 'Layer height in millimeters.<br>This is the most important setting to determine the quality of your print. Normal quality prints are 0.1mm, high quality is 0.06mm.<br><b>Analyse API required</b>', '3dprint' ));?>" src="<?php echo plugins_url( '3dprint/images/question.png' ); ?>"></td> 
 					</tr>
 
 					<tr valign="top">
 						<th scope="row"><?php _e( 'Wall Thickness', '3dprint' ); ?></th>
-						<td><input type="text" name="3dp_printer_wall_thickness[<?php echo $printer['id'];?>]" value="<?php echo $printer['wall_thickness'];?>" /><?php _e( 'mm', '3dprint' );?></td>
+						<td><input type="text" name="3dp_printer_wall_thickness[<?php echo $printer['id'];?>]" value="<?php echo $printer['wall_thickness'];?>" /><?php _e( 'mm', '3dprint' );?> <img class="tooltip" title="<?php htmlentities(_e( 'Thickness of the outside shell in the horizontal direction.<br>This is used in combination with the nozzle size to define the number<br>of perimeter lines and the thickness of those perimeter lines.<br><b>Analyse API required</b>', '3dprint' ));?>" src="<?php echo plugins_url( '3dprint/images/question.png' ); ?>"></td>
 					</tr>
 
 					<tr valign="top">
 						<th scope="row"><?php _e( 'Nozzle Size', '3dprint' ); ?></th>
-						<td><input type="text" name="3dp_printer_nozzle_size[<?php echo $printer['id'];?>]" value="<?php echo $printer['nozzle_size'];?>" /><?php _e( 'mm', '3dprint' );?></td>
+						<td><input type="text" name="3dp_printer_nozzle_size[<?php echo $printer['id'];?>]" value="<?php echo $printer['nozzle_size'];?>" /><?php _e( 'mm', '3dprint' );?> <img class="tooltip" title="<?php htmlentities(_e( 'The nozzle size is very important, this is used to calculate the line width of the infill, and used to calculate the amount of outside wall lines and thickness for the wall thickness you entered in the print settings.<br><b>Analyse API required</b>', '3dprint' ));?>" src="<?php echo plugins_url( '3dprint/images/question.png' ); ?>"></td>
 					</tr>
 
 					<tr class="printer_infills" valign="top">
@@ -637,11 +586,23 @@ function p3dCalculateFilamentPrice(material_obj) {
 									}
 								?>
 		 					</select>
+							<img class="tooltip" title="<?php htmlentities(_e( 'This controls how densely filled the insides of your print will be. For a solid part use 100%, for an empty part use 0%. A value around 20% is usually enough.<br>This won\'t affect the outside of the print and only adjusts how strong the part becomes.<br><b>Analyse API required</b>', '3dprint' ));?>" src="<?php echo plugins_url( '3dprint/images/question.png' ); ?>">
 						</td>
 					</tr>
 
 
 
+					<tr valign="top">
+						<th scope="row"><?php _e( 'Print Speed', '3dprint' ); ?></th>
+						<td><input type="text" name="3dp_printer_speed[<?php echo $printer['id'];?>]" value="<?php echo $printer['speed'];?>" />
+							<select name="3dp_printer_speed_type[<?php echo $printer['id'];?>]">
+								<option <?php if ( $printer['speed_type']=='mm3s' ) echo "selected";?> value="mm3s"><?php _e('mm3/s', '3dprint');?></option>
+								<option <?php if ( $printer['speed_type']=='mms' ) echo "selected";?>  value="mms"><?php _e('mm/s', '3dprint');?></option>
+		 					</select>
+							<img class="tooltip" title="<?php htmlentities(_e( 'Speed at which printing happens. This is needed if you charge by hour. A well adjusted Ultimaker can reach 150mm/s, but for good quality prints you want to print slower. <br>Printing speed depends on a lot of factors. So you will be experimenting with optimal settings for this.<br><b>Analyse API required</b>', '3dprint' ));?>" src="<?php echo plugins_url( '3dprint/images/question.png' ); ?>">
+						</td>
+
+					</tr>
 
 					<tr valign="top">
 						<th scope="row"><?php _e( 'Printing Cost', '3dprint' ); ?></th>
@@ -651,6 +612,8 @@ function p3dCalculateFilamentPrice(material_obj) {
 								<option <?php if ( $printer['price_type']=='box_volume' ) echo "selected";?> value="box_volume"><?php _e('1 cm3 of Bounding Box Volume', '3dprint');?></option>
 								<option <?php if ( $printer['price_type']=='material_volume' ) echo "selected";?> value="material_volume"><?php _e('1 cm3 of Material Volume', '3dprint');?></option>
 								<option <?php if ( $printer['price_type']=='gram' ) echo "selected";?> value="gram"><?php _e('1 gram of Material', '3dprint');?></option>
+								<option <?php if ( $printer['price_type']=='fixed' ) echo "selected";?> value="fixed"><?php _e('Fixed Price', '3dprint');?></option>
+								<option <?php if ( $printer['price_type']=='hour' ) echo "selected";?> value="hour"><?php _e('1 Hour (Analyse API required)', '3dprint');?></option>
 								<option <?php if ( $printer['price_type']=='sla' ) echo "selected";?> value="sla"><?php _e('sla formula', '3dprint');?></option>
 								<option <?php if ( $printer['price_type']=='sls' ) echo "selected";?> value="sls"><?php _e('sls formula', '3dprint');?></option>
 							</select>
@@ -669,6 +632,35 @@ function p3dCalculateFilamentPrice(material_obj) {
 									}
 								?>
 							</select>
+						</td>
+					</tr>
+
+					<tr valign="top">
+						<th scope="row"><?php _e( 'Support Material', '3dprint' ); ?></th>
+						<td>
+							<select autocomplete="off" name="3dp_printer_support[<?php echo $printer['id'];?>]">
+								<option <?php if ( $printer['support']=='0' ) echo "selected";?> value="0"><?php _e('None', '3dprint');?></option>
+								<option <?php if ( $printer['support']=='1' ) echo "selected";?> value="1"><?php _e('Touching Buildplate', '3dprint');?></option>
+								<option <?php if ( $printer['support']=='2' ) echo "selected";?> value="2"><?php _e('Everywhere', '3dprint');?></option>
+		 					</select>
+							<img class="tooltip" title="<?php htmlentities(_e( 'Type of support structure build.<br>\'Touching buildplate\' is the most commonly used support setting.<br><br>None does not do any support.<br>Touching buildplate only creates support where the support structure will touch the build platform.<br>Everywhere creates support even on top of parts of the model.<br><b>Analyse API required</b>', '3dprint' ));?>" src="<?php echo plugins_url( '3dprint/images/question.png' ); ?>">
+						</td>
+					</tr>
+					<tr valign="top">
+						<th scope="row"><?php _e( 'Support Structure Type', '3dprint' ); ?></th>
+						<td>
+							<select autocomplete="off" name="3dp_printer_support_type[<?php echo $printer['id'];?>]">
+								<option <?php if ( $printer['support_type']=='0' ) echo "selected";?> value="0"><?php _e('Lines', '3dprint');?></option>
+								<option <?php if ( $printer['support_type']=='1' ) echo "selected";?> value="1"><?php _e('Grid', '3dprint');?></option>
+		 					</select>
+							<img class="tooltip" title="<?php htmlentities(_e( 'The type of support structure.<br>Grid is very strong and can come off in 1 piece, however, sometimes it is too strong.<br>Lines are single walled lines that break off one at a time. Which is more work to remove, but as it is less strong it does work better on tricky prints.<br><b>Analyse API required</b>', '3dprint' ));?>" src="<?php echo plugins_url( '3dprint/images/question.png' ); ?>">
+						</td>
+					</tr>
+					<tr valign="top">
+						<th scope="row"><?php _e( 'Support Overhang Angle', '3dprint' ); ?></th>
+						<td>
+							<input type="text" name="3dp_printer_support_angle[<?php echo $printer['id'];?>]" value="<?php echo $printer['support_angle'];?>" />&deg; 
+							<img class="tooltip" title="<?php htmlentities(_e( 'The minimal angle that overhangs need to have to get support. With 90 degree being horizontal and 0 degree being vertical.<br><b>Analyse API required</b>', '3dprint' ));?>" src="<?php echo plugins_url( '3dprint/images/question.png' ); ?>">
 						</td>
 					</tr>
 
@@ -700,81 +692,7 @@ function p3dCalculateFilamentPrice(material_obj) {
 		</div><!-- 3dp_tabs-1 -->
 		<div id="3dp_tabs-2">
 			<form method="post" action="admin.php?page=3dprint#3dp_tabs-2">
-<?php
-			if ( !is_array($materials) || count( $materials )==0 ) {
-?>
-				<table class="form-table material">
-					<tr>
-						<td colspan="2"><hr></td>
-					</tr>
-					<tr valign="top">
-						<th scope="row"><?php _e( 'Material Name', '3dprint' );?></th>
-						<td><input type="text" name="3dp_material_name[1]" value="ABS (1.75mm)" /></td>
-					</tr>
 
-				 	<tr valign="top">
-						<th scope="row"><?php _e( 'Material Type', '3dprint' );?></th>
-						<td>
-							<select name="3dp_material_type[1]" onchange="p3dSetMaterialType(this)">
-								<option value="filament"><?php _e( 'Filament', '3dprint' );?>
-								<option value="other"><?php _e( 'Other', '3dprint' );?>
-							</select>
-						</td>
-					</tr>
-	
-					<tr valign="top">
-						<th scope="row"><?php _e( 'Price', '3dprint' ); ?></th>
-						<td>
-							<input type="text" class="3dp_price" name="3dp_material_price[1]" value="0.03" /><?php echo get_woocommerce_currency_symbol(); ?> <?php _e('per', '3dprint');?>
-							<select class="3dp_price_type" name="3dp_material_price_type[1]">
-								<option value="cm3"><?php _e('1 cm3', '3dprint');?></option>
-								<option value="gram"><?php _e('1 gram', '3dprint');?></option>
-							</select>
-							<a class="material_filament" onclick="javascript:p3dCalculateFilamentPrice(this)" href="javascript:void(0)"><?php _e( 'Calculate', '3dprint' );?></a>
-					 	</td>
-					</tr>
-
-					<tr class="material_other" valign="top">
-						<th scope="row"><?php _e( 'Material Density', '3dprint' );?></th>
-						<td><input type="text" name="3dp_material_density[1]" value="0" /><?php _e( 'g/cm3', '3dprint' );?></td>
-					</tr>
-
-					<tr class="material_filament" valign="top">
-						<th scope="row"><?php _e( 'Filament Diameter', '3dprint' );?></th>
-						<td><input type="text" class="3dp_diameter" name="3dp_material_diameter[1]" value="1.75" /><?php _e( 'mm', '3dprint' );?></td>
-					</tr>
-
-					<tr class="material_filament" valign="top">
-						<th scope="row"><?php _e( 'Filament Length', '3dprint' );?></th>
-						<td><input type="text" class="3dp_length" name="3dp_material_length[1]" value="330" /><?php _e( 'm', '3dprint' );?></td>
-					</tr>
-
-					<tr class="material_filament" valign="top">
-						<th scope="row"><?php _e( 'Roll Weight', '3dprint' );?></th>
-						<td><input type="text" class="3dp_weight" name="3dp_material_weight[1]" value="1" /><?php _e( 'kg', '3dprint' );?></td>
-					</tr>
-
-					<tr class="material_filament" valign="top">
-						<th scope="row"><?php _e( 'Roll Price', '3dprint' );?></th>
-						<td><input type="text" class="3dp_roll_price" name="3dp_material_roll_price[1]" value="20" /><?php echo get_woocommerce_currency_symbol(); ?></td>
-					</tr>
-
-
-					<tr valign="top">
-						<th scope="row"><?php _e( 'Material Color', '3dprint' );?></th>
-						<td class="color_td"><input type="text" class="3dp_color_picker" name="3dp_material_color[1]" value="" /></td>
-					</tr>
-
-					<tr valign="top">
-						<th scope="row"><?php _e( 'Group Name', '3dprint' );?></th>
-						<td><input type="text" name="3dp_material_group_name[1]" value="" /></td>
-					</tr>
-					<tr valign="top">
-						<th scope="row"><?php _e( 'Sort Order', '3dprint' );?></th>
-						<td><input type="text" name="3dp_material_sort_order[1]" value="0" /></td>
-					</tr>
-				</table>
-			<?php } ?>
 <?php
 	if ( is_array( $materials ) && count( $materials )>0 ) {
 		$i=0;
@@ -792,7 +710,7 @@ function p3dCalculateFilamentPrice(material_obj) {
 						<th scope="row"><?php _e( 'Material Name', '3dprint' );?></th>
 						<td>
 							<input type="text" name="3dp_material_name[<?php echo $material['id'];?>]" value="<?php echo $material['name'];?>" />&nbsp;
-							<a class="remove_material" href="javascript:void(0);" onclick="p3dRemoveMaterial(<?php echo $material['id'];?>);return false;">
+							<a style="<?php if (count( $materials )==1) echo 'display:none;';?>" class="remove_material" href="javascript:void(0);" onclick="p3dRemoveMaterial(<?php echo $material['id'];?>);return false;">
 								<img alt="<?php _e( 'Remove Filament', '3dprint' );?>" title="<?php _e( 'Remove Filament', '3dprint' );?>" src="<?php echo plugins_url( '3dprint/images/remove.png' ); ?>">
 					 		</a>
 						</td>
@@ -815,6 +733,7 @@ function p3dCalculateFilamentPrice(material_obj) {
 							<select class="3dp_price_type"  name="3dp_material_price_type[<?php echo $material['id'];?>]">
 								<option <?php if ( $material['price_type']=='cm3' ) echo "selected";?> value="cm3"><?php _e('1 cm3', '3dprint');?></option>
 								<option <?php if ( $material['price_type']=='gram' ) echo "selected";?> value="gram"><?php _e('1 gram', '3dprint');?></option>
+								<option <?php if ( $material['price_type']=='fixed' ) echo "selected";?> value="fixed"><?php _e('Fixed Price', '3dprint');?></option>
 							</select>
 							<a class="material_filament" onclick="javascript:p3dCalculateFilamentPrice(this)" href="javascript:void(0)"><?php _e( 'Calculate', '3dprint' );?></a>
 						</td>
@@ -895,7 +814,13 @@ function p3dCalculateFilamentPrice(material_obj) {
 					<tr valign="top">
 						<th scope="row"><?php _e( 'Price', '3dprint' ); ?></th>
 						<td>
-							<input type="text" class="3dp_price" name="3dp_coating_price[1]" value="" /><?php echo get_woocommerce_currency_symbol(); ?> <?php _e('per', '3dprint');?> <?php _e('cm2 of surface area', '3dprint');?>
+							<input type="text" class="3dp_price" name="3dp_coating_price[1]" value="" /><?php echo get_woocommerce_currency_symbol(); ?> <?php _e('per', '3dprint');?> 
+							<select name="3dp_coating_price_type[1]">
+								<option value="cm2"><?php _e('cm2 of surface area', '3dprint');?></option>
+								<option value="fixed"><?php _e('Fixed Price', '3dprint');?></option>
+							</select>
+
+							
 					 	</td>
 					</tr>
 
@@ -955,7 +880,12 @@ function p3dCalculateFilamentPrice(material_obj) {
 					<tr valign="top">
 						<th scope="row"><?php _e( 'Price', '3dprint' ); ?></th>
 						<td>
-							<input type="text" class="3dp_price" name="3dp_coating_price[<?php echo $coating['id'];?>]" value="<?php echo $coating['price'];?>" /><?php echo get_woocommerce_currency_symbol(); ?> <?php _e('per', '3dprint');?> <?php _e('cm2 of surface area', '3dprint');?>
+							<input type="text" class="3dp_price" name="3dp_coating_price[<?php echo $coating['id'];?>]" value="<?php echo $coating['price'];?>" /><?php echo get_woocommerce_currency_symbol(); ?> <?php _e('per', '3dprint');?> 
+							<select name="3dp_coating_price_type[<?php echo $coating['id'];?>]">
+								<option <?php if ($coating['price_type']=='cm2') echo 'selected'; ?> value="cm2"><?php _e('cm2 of surface area', '3dprint');?></option>
+								<option <?php if ($coating['price_type']=='fixed') echo 'selected'; ?> value="fixed"><?php _e('Fixed Price', '3dprint');?></option>
+							</select>
+
 						</td>
 					</tr>
 
