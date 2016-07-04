@@ -520,6 +520,49 @@ function p3d_calculate_printing_cost( $printer_id, $material_id, $coating_id, $p
 		elseif ( $material['price_type']=='fixed' ) {
 			$material_cost = $material['price'];
 		}
+	}
+
+	elseif ( strstr ($material['price'], ':' ) ) {
+		$material['price']=trim($material['price']);
+		$material_volume_pricing_array = explode(';', $material['price']);
+		foreach ($material_volume_pricing_array as $discount_rule) {
+			list ($amount, $price) = explode(':', $discount_rule);
+
+			if ( $material['price_type']=='cm3' ) {
+				if ($printing_volume >= $amount) {
+					$material_cost = ( $printing_volume ) * $price;
+				}
+			}
+			elseif ( $material['price_type']=='gram' ) {
+				if ($weight >= $amount) {
+					$material_cost = $weight * $price;
+				}
+			}
+			elseif ( $material['price_type']=='fixed' ) {
+				if ($printing_volume >= $amount) {
+					$material_cost = $price;
+				}
+			}
+		}
+	}
+
+
+	if ( is_numeric( $printer['price'] ) ) {
+		if ( $printer['price_type']=="material_volume" ) {
+			$printing_cost = ( $printing_volume ) * $printer['price'];
+		}
+		elseif ( $printer['price_type']=="box_volume" ) {
+			$printing_cost = $product_info['model']['box_volume'] * $printer['price'];
+		}
+		elseif ( $printer['price_type']=="gram" ) {
+			$printing_cost = $weight * $printer['price'];
+		}
+		elseif ( $printer['price_type']=="hour" ) {
+			$printing_cost = ($product_info['model']['print_time'] /3600) * $printer['price'];
+		}
+		elseif ( $printer['price_type']=="fixed" ) {
+			$printing_cost = $printer['price'];
+		}
 		elseif ( $printer['price_type']=="sla" ) {
       // voeg volumefactor toe
       $printer_volume_pricing_string = "
@@ -607,49 +650,6 @@ function p3d_calculate_printing_cost( $printer_id, $material_id, $coating_id, $p
       }
       $printing_cost = $printing_cost;
 
-		}
-	}
-
-	elseif ( strstr ($material['price'], ':' ) ) {
-		$material['price']=trim($material['price']);
-		$material_volume_pricing_array = explode(';', $material['price']);
-		foreach ($material_volume_pricing_array as $discount_rule) {
-			list ($amount, $price) = explode(':', $discount_rule);
-
-			if ( $material['price_type']=='cm3' ) {
-				if ($printing_volume >= $amount) {
-					$material_cost = ( $printing_volume ) * $price;
-				}
-			}
-			elseif ( $material['price_type']=='gram' ) {
-				if ($weight >= $amount) {
-					$material_cost = $weight * $price;
-				}
-			}
-			elseif ( $material['price_type']=='fixed' ) {
-				if ($printing_volume >= $amount) {
-					$material_cost = $price;
-				}
-			}
-		}
-	}
-
-
-	if ( is_numeric( $printer['price'] ) ) {
-		if ( $printer['price_type']=="material_volume" ) {
-			$printing_cost = ( $printing_volume ) * $printer['price'];
-		}
-		elseif ( $printer['price_type']=="box_volume" ) {
-			$printing_cost = $product_info['model']['box_volume'] * $printer['price'];
-		}
-		elseif ( $printer['price_type']=="gram" ) {
-			$printing_cost = $weight * $printer['price'];
-		}
-		elseif ( $printer['price_type']=="hour" ) {
-			$printing_cost = ($product_info['model']['print_time'] /3600) * $printer['price'];
-		}
-		elseif ( $printer['price_type']=="fixed" ) {
-			$printing_cost = $printer['price'];
 		}
 	}
 	elseif ( strstr ( $printer['price'], ':' ) ) {
