@@ -520,6 +520,49 @@ function p3d_calculate_printing_cost( $printer_id, $material_id, $coating_id, $p
 		elseif ( $material['price_type']=='fixed' ) {
 			$material_cost = $material['price'];
 		}
+	}
+
+	elseif ( strstr ($material['price'], ':' ) ) {
+		$material['price']=trim($material['price']);
+		$material_volume_pricing_array = explode(';', $material['price']);
+		foreach ($material_volume_pricing_array as $discount_rule) {
+			list ($amount, $price) = explode(':', $discount_rule);
+
+			if ( $material['price_type']=='cm3' ) {
+				if ($printing_volume >= $amount) {
+					$material_cost = ( $printing_volume ) * $price;
+				}
+			}
+			elseif ( $material['price_type']=='gram' ) {
+				if ($weight >= $amount) {
+					$material_cost = $weight * $price;
+				}
+			}
+			elseif ( $material['price_type']=='fixed' ) {
+				if ($printing_volume >= $amount) {
+					$material_cost = $price;
+				}
+			}
+		}
+	}
+
+
+	if ( is_numeric( $printer['price'] ) ) {
+		if ( $printer['price_type']=="material_volume" ) {
+			$printing_cost = ( $printing_volume ) * $printer['price'];
+		}
+		elseif ( $printer['price_type']=="box_volume" ) {
+			$printing_cost = $product_info['model']['box_volume'] * $printer['price'];
+		}
+		elseif ( $printer['price_type']=="gram" ) {
+			$printing_cost = $weight * $printer['price'];
+		}
+		elseif ( $printer['price_type']=="hour" ) {
+			$printing_cost = ($product_info['model']['print_time'] /3600) * $printer['price'];
+		}
+		elseif ( $printer['price_type']=="fixed" ) {
+			$printing_cost = $printer['price'];
+		}
 		elseif ( $printer['price_type']=="sla" ) {
       // voeg volumefactor toe
       $printer_volume_pricing_string = "
@@ -550,23 +593,25 @@ function p3d_calculate_printing_cost( $printer_id, $material_id, $coating_id, $p
 		}
 		elseif ( $printer['price_type']=="sls" ) {
 
-      $x = $product_info['model']['x_dim'] * 100;
-      $y = $product_info['model']['y_dim'] * 100;
-      $z = $product_info['model']['z_dim'] * 100;
-      $xyz = ($x * $y * $z);
+      $x = $product_info['model']['x_dim'] * 10;
+      $y = $product_info['model']['y_dim'] * 10;
+      $z = $product_info['model']['z_dim'] * 10;
+      $xyz = (($x * $y * $z) + 1 );
 
       function calcSLS($multiplier, $x, $y, $z, $xyz) {
-            $sola = (3.14 + ( 0.0023 * $x * $z))+ ( (0.042 * (( $x*$y)/($x*10))) * ($z-1)) * $multiplier;
-            $solb = (3.14 + ( 0.0023 * $x * $z))+ ( (0.042 * (( $z*$y)/($z*10))) * ($x-1)) * $multiplier;
-            $solc = (3.14 + ( 0.0023 * $x * $y))+ ( (0.042 * (( $x*$z)/($x*10))) * ($y-1)) * $multiplier;
+
+        $sola = (3.14 + ( 0.0023 * $x * $z))+ ( (0.042 * (( $x*$y)/($x*10))) * ($z-1)) * $multiplier;
+        $solb = (3.14 + ( 0.0023 * $x * $z))+ ( (0.042 * (( $z*$y)/($z*10))) * ($x-1)) * $multiplier;
+        $solc = (3.14 + ( 0.0023 * $x * $y))+ ( (0.042 * (( $x*$z)/($x*10))) * ($y-1)) * $multiplier;
+
         if ($sola < $solb) {
-          return $sola
+          return $sola;
         } else
         if ($solb > $solc) {
-          return $solc
+          return $solc;
         } else
         {
-          return $solb
+          return $solb;
         }
       };
 
@@ -627,56 +672,13 @@ function p3d_calculate_printing_cost( $printer_id, $material_id, $coating_id, $p
       for ($i = 0; $i < count($multiplierArray); $i++) {
         $helper = explode(":",$multiplierArray[$i]);
         if ($xyz < $helper[0]) {
-          $printing_cost = calcSLS($helper[1], $x, $y, $z, $xyz);
-          return $printing_cost;
+          $printing_cost_calc = calcSLS($helper[1], $x, $y, $z, $xyz);
+          return $printing_cost_calc;
           break;
         }
       }
-      $printing_cost = $printing_cost;
+      $printing_cost = $printing_cost_calc;
 
-		}
-	}
-
-	elseif ( strstr ($material['price'], ':' ) ) {
-		$material['price']=trim($material['price']);
-		$material_volume_pricing_array = explode(';', $material['price']);
-		foreach ($material_volume_pricing_array as $discount_rule) {
-			list ($amount, $price) = explode(':', $discount_rule);
-
-			if ( $material['price_type']=='cm3' ) {
-				if ($printing_volume >= $amount) {
-					$material_cost = ( $printing_volume ) * $price;
-				}
-			}
-			elseif ( $material['price_type']=='gram' ) {
-				if ($weight >= $amount) {
-					$material_cost = $weight * $price;
-				}
-			}
-			elseif ( $material['price_type']=='fixed' ) {
-				if ($printing_volume >= $amount) {
-					$material_cost = $price;
-				}
-			}
-		}
-	}
-
-
-	if ( is_numeric( $printer['price'] ) ) {
-		if ( $printer['price_type']=="material_volume" ) {
-			$printing_cost = ( $printing_volume ) * $printer['price'];
-		}
-		elseif ( $printer['price_type']=="box_volume" ) {
-			$printing_cost = $product_info['model']['box_volume'] * $printer['price'];
-		}
-		elseif ( $printer['price_type']=="gram" ) {
-			$printing_cost = $weight * $printer['price'];
-		}
-		elseif ( $printer['price_type']=="hour" ) {
-			$printing_cost = ($product_info['model']['print_time'] /3600) * $printer['price'];
-		}
-		elseif ( $printer['price_type']=="fixed" ) {
-			$printing_cost = $printer['price'];
 		}
 	}
 	elseif ( strstr ( $printer['price'], ':' ) ) {
