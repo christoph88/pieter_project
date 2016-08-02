@@ -1229,14 +1229,19 @@ function p3dCalculatePrintingCost( product_info ) {
       var xyz = x * y * z;
 
       var calcSLS = function(multiplier) {
-        if (z * z< x * y) {
-            printing_cost = (3.14 + ( 0.0023 * x * z))+ ( (0.042 * (( x*y)/(x*10))) * (z-1)) * multiplier;
+            var sola = (3.14 + ( 0.0023 * x * z))+ ( (0.042 * (( x*y)/(x*10))) * (z-1)) * multiplier;
+            var solb = (3.14 + ( 0.0023 * x * z))+ ( (0.042 * (( z*y)/(z*10))) * (x-1)) * multiplier;
+            var solc = (3.14 + ( 0.0023 * x * y))+ ( (0.042 * (( x*z)/(x*10))) * (y-1)) * multiplier;
+
+
+        if (sola < solb) {
+          return sola;
         } else
-        if (x < z) {
-            printing_cost = (3.14 + ( 0.0023 * x * z))+ ( (0.042 * (( z*y)/(z*10))) * (x-1)) * multiplier;
+        if (solb > solc) {
+          return solc;
         } else
         {
-            printing_cost = (3.14 + ( 0.0023 * x * y))+ ( (0.042 * (( x*z)/(x*10))) * (y-1)) * multiplier;
+          return solb;
         }
       };
 
@@ -1265,8 +1270,32 @@ function p3dCalculatePrintingCost( product_info ) {
       5832001:2.6;
       6859001:2.75;
       8000001:2.95;
-      15625001:4;
-      120000001:5;
+      9261001:4;
+      10648001:5.01;
+      12167001:5.21;
+      13824001:5.41;
+      15625001:5.61;
+      17576001:5.81;
+      19683001:6.05;
+      21952001:6.25;
+      24389001:6.45;
+      27000001:6.7;
+      29791001:6.9;
+      32768001:7.1;
+      35937001:7.35;
+      39304001:7.55;
+      42875001:7.75;
+      46656001:7.95;
+      50653001:8.15;
+      54872001:8.35;
+      59319001:8.55;
+      64000001:8.8;
+      125000001:10.9;
+      216000001:13.1;
+      343000001:15.3;
+      512000001:17.5;
+      729000001:19.7;
+      1000000001:22.2;
       `
 
       var multiplierArray = multiplierString.split(';');
