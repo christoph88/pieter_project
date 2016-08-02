@@ -673,11 +673,11 @@ function p3d_calculate_printing_cost( $printer_id, $material_id, $coating_id, $p
         $helper = explode(":",$multiplierArray[$i]);
         if ($xyz < $helper[0]) {
           $printing_cost_calc = calcSLS($helper[1], $x, $y, $z, $xyz);
-          return $printing_cost;
+          return $printing_cost_calc;
           break;
         }
       }
-      $printing_cost = $printing_cost;
+      $printing_cost = $printing_cost_calc;
 		}
 	}
 	elseif ( strstr ( $printer['price'], ':' ) ) {
