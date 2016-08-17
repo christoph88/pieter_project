@@ -1193,16 +1193,17 @@ function p3dCalculatePrintingCost( product_info ) {
 		}
 		else if ( printer.data('price_type')=="sla" ) {
       // voeg volumefactor toe
+      var model_material_volume = printing_volume*1000;
       var printer_volume_pricing_string = `
-        0:4.641;
-        64000:3.24;
-        125000:2.42;
-        216000:1.9;
-        343000:1.6;
-        512000:1.5;
-        729000:1.4;
-        1000000:1.2;
-        1728000:1.1
+      40000000000:0.0011;
+      1728000:0.0012;
+      1000000:0.0014;
+      729000:0.0015;
+      512000:0.0016;
+      343000:0.0019;
+      216000:0.00242;
+      125000:0.00324;
+      64000:0.004641;
       `;
 
       var printer_volume_pricing_array = printer_volume_pricing_string.split(';');
@@ -1212,11 +1213,11 @@ function p3dCalculatePrintingCost( product_info ) {
             var amount = discount_rule[0];
             var price = discount_rule[1];	
             // put box_volume in cubic cm, convert to mm > * 1000
-            if (product_info['model']['box_volume']*1000 >= amount)
-              printing_vol = product_info['model']['box_volume'] * price;
+            if (model_material_volume <= amount)
+              printing_vol = model_material_volume * price;
           }
         }
-      printing_cost = 50.50 + printing_vol * printer.data('price');
+      printing_cost = 50.50 + printing_vol;
 		}
 		else if ( printer.data('price_type')=="sls" ) {
 			//printing_cost=product_info['model']['weight']*printer.data('price')*1000000000000;
